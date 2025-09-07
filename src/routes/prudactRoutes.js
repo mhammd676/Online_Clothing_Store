@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { authMiddleware } = require("../middlewares/auth.middlewares");
 const {
   getProducts,
   getProductById
@@ -7,9 +8,9 @@ const {
 
 
 
-router.get('/', getProducts);
+router.get('/',authMiddleware, getProducts);
 
 
-router.get("/:id",getProductById)
+router.get("/:id",authMiddleware,getProductById)
 
 module.exports = router;
