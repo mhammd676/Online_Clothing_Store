@@ -1,12 +1,16 @@
 const prisma = require('../config/db');
-
-
+const path = require("path");
+const fs = require("fs");
 
 // Create Product
 const createProduct = async (req, res) => {
   try {
     const { productName, description, price, subId, stock } = req.body; 
-    const image = req.file ? req.file.path : null;
+
+    let imageUrl = null;
+    if (req.file) {
+      imageUrl = `/uploads/${req.file.filename}`; 
+    }
 
     const subCategoryIdNum = parseInt(subId);
     if (isNaN(subCategoryIdNum)) {
@@ -37,7 +41,7 @@ const createProduct = async (req, res) => {
         price: priceNum,
         stock: stockNum,
         subCategoryId: subCategoryIdNum,
-        imageUrl: image,
+        imageUrl, 
       },
     });
 
@@ -54,7 +58,6 @@ const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const { productName, description, price, subId, stock } = req.body; 
-    const imageUrl = req.file ? req.file.path : null;
 
     const productId = parseInt(id);
     if (isNaN(productId)) {
@@ -104,7 +107,10 @@ const updateProduct = async (req, res) => {
       data.subCategoryId = subCategoryIdNum;
     }
 
-    if (imageUrl) data.imageUrl = imageUrl;
+
+    if (req.file) {
+      data.imageUrl = `/uploads/${req.file.filename}`;
+    }
 
     const product = await prisma.product.update({
       where: { id: productId },
@@ -122,7 +128,7 @@ const updateProduct = async (req, res) => {
 };
 
 
-// Delete Product
+
 const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -132,11 +138,27 @@ const deleteProduct = async (req, res) => {
       return res.status(400).json({ error: "ProductId must be a valid number" });
     }
 
+  
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    if (product.imageUrl) {
+      const imagePath = path.join(__dirname, "../..", product.imageUrl); 
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
     await prisma.product.delete({
       where: { id: productId },
     });
 
-    res.json({ message: "Product deleted successfully" });
+    res.json({ message: "Product and image deleted successfully" });
   } catch (err) {
     console.error(err);
     if (err.code === "P2025") {

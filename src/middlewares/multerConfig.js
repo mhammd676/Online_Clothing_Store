@@ -1,32 +1,25 @@
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 
-// مكان تخزين الصور
+const UPLOADS_FOLDER = path.join(__dirname, "../../uploads"); // <-- نفس مجلد static
+
+if (!fs.existsSync(UPLOADS_FOLDER)) fs.mkdirSync(UPLOADS_FOLDER, { recursive: true });
+
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // __dirname = src/middlewares
-    cb(null, path.join(__dirname, "../../uploads")); 
-  },
-  filename: function (req, file, cb) {
+  destination: (req, file, cb) => cb(null, UPLOADS_FOLDER),
+  filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname); // الحفاظ على الامتداد
+    const ext = path.extname(file.originalname);
     cb(null, file.fieldname + "-" + uniqueSuffix + ext);
   },
 });
 
-// فلترة الملفات للتأكد أنها صور
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif/;
-  const ext = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mime = allowedTypes.test(file.mimetype);
-
-  if (ext && mime) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only images are allowed"));
-  }
+  const allowed = /jpeg|jpg|png|gif/;
+  const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+  const mime = allowed.test(file.mimetype);
+  cb(ext && mime ? null : new Error("Only images are allowed"), ext && mime);
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }); // حد أقصى 5MB
-
-module.exports = upload;
+module.exports = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });

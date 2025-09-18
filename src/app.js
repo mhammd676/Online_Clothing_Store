@@ -4,10 +4,18 @@ const cors = require("cors");
 
 dotenv.config();
 const app = express();
-
+const fs = require("fs");
+const path = require('path');
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+
+const UPLOADS_FOLDER = path.join(__dirname, "../uploads");
+
+if (!fs.existsSync(UPLOADS_FOLDER)) fs.mkdirSync(UPLOADS_FOLDER, { recursive: true });
+
+app.use("/uploads", express.static(UPLOADS_FOLDER));
 
 // Routes
 const adminRoutes = require("./routes/adminRoutes");
