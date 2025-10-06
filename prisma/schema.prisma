@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL")
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  first_name String
+  last_name  String
+  email      String   @unique
+  password   String
+  role       String   @default("user")
+  createdAt  DateTime @default(now())
+  reviews    Review[]
+  siteReviews SiteReview[]
+  cart       Cart?
+}
+
+model MainCategory {
+  id            Int           @id @default(autoincrement())
+  name          String
+  imageUrl      String?
+  createdAt     DateTime       @default(now())
+  subCategories SubCategory[]
+}
+
+model SubCategory {
+  id        Int        @id @default(autoincrement())
+  name      String
+  imageUrl  String?
+  createdAt DateTime   @default(now())
+  mainId    Int
+  main      MainCategory @relation(fields: [mainId], references: [id])
+  products  Product[]
+}
+
+model Product {
+  id            Int          @id @default(autoincrement())
+  name          String
+  description   String?
+  imageUrl      String?
+  price         Float
+  createdAt     DateTime     @default(now())
+  stock         Int        @default(0)
+
+  subCategoryId Int
+  subCategory   SubCategory  @relation(fields: [subCategoryId], references: [id])
+
+  reviews       Review[]
+  cartItems     CartItem[]
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+
+model SiteReview {
+  id          Int      @id @default(autoincrement())
+  rating      Int
+  comment     String?
+  createdAt   DateTime @default(now())
+  isApproved  Boolean  @default(false) // false = لم تتم الموافقة بعد
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+}
+
+
+model Cart {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique
+  user      User      @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime  @default(now())
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cartId    Int
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+}
+
+model FAQ {
+  id         Int      @id @default(autoincrement())
+  question   String
+  answer     String
+  category   FAQCategory @default(ALL)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+enum FAQCategory {
+  ALL
+  ORDERING
+  SHIPPING
+  RETURNS
+  SUPPORT
+}
