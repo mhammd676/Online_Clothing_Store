@@ -103,7 +103,7 @@ router.delete("/webReview/:id",authMiddleware,authorize(["admin"]), deleteSiteRe
 
 // ================== FAQ_Controller ==================
 
-router.post("/faq" , authMiddleware ,authorize(["admin"]) , createFAQ);
+router.post("/faq" , authMiddleware , createFAQ);
 
 router.put("/faq/:id" , authMiddleware ,authorize(["admin"]) , updateFAQ);
 

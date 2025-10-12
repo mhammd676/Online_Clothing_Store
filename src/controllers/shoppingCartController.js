@@ -1,10 +1,9 @@
 const prisma = require('../config/db');
 
+// add to cart
 const addToCart = async (req, res) => {
   try {
     const { userId, productId, quantity } = req.body;
-
-
     const productIdNum = parseInt(productId);
     if (isNaN(productIdNum)) {
       return res.status(400).json({ message: "ProductId must be a valid number" });
@@ -26,7 +25,6 @@ const addToCart = async (req, res) => {
     if (product.stock < quantityNum) {
       return res.status(400).json({ message: "Not enough stock" });
     }
-
 
     let cart = await prisma.cart.findUnique({ where: { userId: userIdNum } });
     if (!cart) cart = await prisma.cart.create({ data: { userId: userIdNum } });
@@ -54,11 +52,7 @@ const addToCart = async (req, res) => {
 };
 
 
-
-
-
-
-
+// get Cart By UserId
 const getCartByUserId = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -87,7 +81,6 @@ const getCartByUserId = async (req, res) => {
       return res.status(200).json({ message: "Cart is empty", items: [] });
     }
 
-
     const totalPrice = cart.items.reduce((acc, item) => {
       return acc + (item.product.price * item.quantity);
     }, 0);
@@ -103,9 +96,74 @@ const getCartByUserId = async (req, res) => {
 };
 
 
+// update Cart Item Quantity
+const updateCartItemQuantity = async (req, res) => {
+  try {
+    const { userId, productId, quantity } = req.body;
+
+    const userIdNum = parseInt(userId);
+    const productIdNum = parseInt(productId);
+    const quantityNum = parseInt(quantity);
+
+    if (isNaN(userIdNum) || isNaN(productIdNum) || isNaN(quantityNum)) {
+      return res.status(400).json({ message: "Invalid input data" });
+    }
+
+    if (quantityNum <= 0) {
+      return res.status(400).json({ message: "Quantity must be greater than 0" });
+    }
+
+    const cart = await prisma.cart.findUnique({ where: { userId: userIdNum } });
+    if (!cart) return res.status(404).json({ message: "Cart not found" });
+
+    const cartItem = await prisma.cartItem.findFirst({
+      where: { cartId: cart.id, productId: productIdNum }
+    });
+    if (!cartItem) return res.status(404).json({ message: "Item not found in cart" });
+
+    await prisma.cartItem.update({
+      where: { id: cartItem.id },
+      data: { quantity: quantityNum }
+    });
+
+    res.json({ message: "Cart item quantity updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// remove From Cart
+const removeFromCart = async (req, res) => {
+  try {
+    const { userId, productId } = req.body;
+
+    const userIdNum = parseInt(userId);
+    const productIdNum = parseInt(productId);
+
+    if (isNaN(userIdNum) || isNaN(productIdNum)) {
+      return res.status(400).json({ message: "Invalid userId or productId" });
+    }
+
+    const cart = await prisma.cart.findUnique({ where: { userId: userIdNum } });
+    if (!cart) return res.status(404).json({ message: "Cart not found" });
+
+    const cartItem = await prisma.cartItem.findFirst({
+      where: { cartId: cart.id, productId: productIdNum }
+    });
+    if (!cartItem) return res.status(404).json({ message: "Item not found in cart" });
+
+    await prisma.cartItem.delete({ where: { id: cartItem.id } });
+
+    res.json({ message: "Item removed from cart successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 
-
+// checkout Cart
 const checkoutCart = async (req, res) => {
   try {
     const { userId } = req.body;
@@ -118,7 +176,6 @@ const checkoutCart = async (req, res) => {
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
     }
-
 
     for (const item of cart.items) {
       if (item.quantity > item.product.stock) {
@@ -140,6 +197,10 @@ const checkoutCart = async (req, res) => {
   }
 };
 
-
-module.exports = { addToCart , getCartByUserId ,checkoutCart};
-
+module.exports = { 
+  addToCart, 
+  getCartByUserId, 
+  updateCartItemQuantity, 
+  removeFromCart, 
+  checkoutCart 
+};
