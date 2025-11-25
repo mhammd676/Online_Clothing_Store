@@ -17,6 +17,8 @@ model User {
   createdAt  DateTime @default(now())
   reviews    Review[]
   siteReviews SiteReview[]
+  favorites Favorite[]
+
   cart       Cart?
 }
 
@@ -45,14 +47,29 @@ model Product {
   imageUrl      String?
   price         Float
   createdAt     DateTime     @default(now())
-  stock         Int        @default(0)
+  stock         Int @default(0)
 
   subCategoryId Int
-  subCategory   SubCategory  @relation(fields: [subCategoryId], references: [id])
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
-  reviews       Review[]
-  cartItems     CartItem[]
+  reviews     Review[]
+  cartItems   CartItem[]
+  favorites   Favorite[]
 }
+
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  productId Int
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
+}
+
 
 model Review {
   id        Int      @id @default(autoincrement())

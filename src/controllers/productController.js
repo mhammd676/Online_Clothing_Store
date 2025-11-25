@@ -222,4 +222,92 @@ const getProductById = async (req, res) => {
 };
 
 
-module.exports = { createProduct, updateProduct, deleteProduct, getProducts, getProductById };
+// Add Product to Favorites
+const addFavorite = async (req, res) => {
+  try {
+    const { userId, productId } = req.body;
+
+    if (!userId || !productId) {
+      return res.status(400).json({ error: "userId and productId are required" });
+    }
+
+    const favorite = await prisma.favorite.create({
+      data: {
+        userId: Number(userId),
+        productId: Number(productId),
+      },
+    });
+
+    res.json({ message: "Added to favorite", favorite });
+  } catch (err) {
+    console.error(err);
+    if (err.code === "P2002") {
+      return res.status(400).json({ error: "Already in favorites" });
+    }
+    res.status(500).json({ error: "An error occurred while adding to favorites" });
+  }
+};
+
+
+
+const getFavoritesByUser = async (req, res) => {
+  try {
+    const userId = req.user.id; 
+    if (isNaN(userId)) return res.status(400).json({ error: "Invalid userId" });
+
+    const favorites = await prisma.favorite.findMany({
+      where: { userId },
+      include: {
+        product: {
+          include: {
+            subCategory: { include: { main: true } },
+            reviews: true,
+          },
+        },
+      },
+    });
+
+    res.json(favorites);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error fetching favorites" });
+  }
+};
+
+
+// Remove from Favorites
+const removeFavorite = async (req, res) => {
+  try {
+    const { userId, productId } = req.body;
+
+    await prisma.favorite.delete({
+      where: {
+        userId_productId: {
+          userId: Number(userId),
+          productId: Number(productId),
+        },
+      },
+    });
+
+    res.json({ message: "Removed from favorite" });
+  } catch (err) {
+    console.error(err);
+    if (err.code === "P2025") {
+      return res.status(404).json({ error: "Favorite not found" });
+    }
+    res.status(500).json({ error: "Error removing from favorites" });
+  }
+};
+
+
+module.exports = { 
+  createProduct, 
+  updateProduct, 
+  deleteProduct, 
+  getProducts, 
+  getProductById,
+  addFavorite,
+  getFavoritesByUser,
+  removeFavorite
+};
+
